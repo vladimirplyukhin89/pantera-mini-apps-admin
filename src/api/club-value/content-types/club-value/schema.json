@@ -9,11 +9,7 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "photo": {
       "type": "media",
@@ -28,15 +24,22 @@
     "description": {
       "type": "text"
     },
-    "accent_color": {
-      "type": "string"
-    },
     "order": {
       "type": "integer"
     },
     "slug": {
       "type": "uid",
       "targetField": "title"
+    },
+    "accent_color": {
+      "type": "enumeration",
+      "enum": [
+        "red",
+        "teal",
+        "orange",
+        "purple",
+        "green"
+      ]
     }
   }
 }

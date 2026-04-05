@@ -9,11 +9,7 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "photo": {
       "type": "media",
@@ -39,10 +35,6 @@
     },
     "order": {
       "type": "integer"
-    },
-    "slug": {
-      "type": "uid",
-      "targetField": "name"
     }
   }
 }
