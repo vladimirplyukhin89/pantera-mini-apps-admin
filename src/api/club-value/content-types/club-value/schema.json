@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club-values",
+  "info": {
+    "singularName": "club-value",
+    "pluralName": "club-values",
+    "displayName": "Club Value"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": false
+    }
+  },
+  "attributes": {
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "accent_color": {
+      "type": "string"
+    },
+    "order": {
+      "type": "integer"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    }
+  }
+}
