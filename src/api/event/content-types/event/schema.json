@@ -9,18 +9,11 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "slug": {
       "type": "uid",
       "targetField": "title"
-    },
-    "emoji": {
-      "type": "string"
     },
     "title": {
       "type": "string"
@@ -31,6 +24,14 @@
     "date_label": {
       "type": "string"
     },
+    "statusPlan": {
+      "type": "enumeration",
+      "default": "past",
+      "enum": [
+        "planned",
+        "past"
+      ]
+    },
     "body": {
       "type": "blocks"
     },
@@ -40,6 +41,13 @@
       "allowedTypes": [
         "images",
         "videos"
+      ]
+    },
+    "video_cover": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
       ]
     },
     "accent_index": {

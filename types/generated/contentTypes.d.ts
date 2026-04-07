@@ -528,7 +528,6 @@ export interface ApiClubValueClubValue extends Struct.CollectionTypeSchema {
     order: Schema.Attribute.Integer;
     photo: Schema.Attribute.Media<'images'>;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.UID<'title'>;
     title: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -585,11 +584,6 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: true;
   };
-  pluginOptions: {
-    i18n: {
-      localized: false;
-    };
-  };
   attributes: {
     accent_index: Schema.Attribute.Integer;
     body: Schema.Attribute.Blocks;
@@ -597,7 +591,6 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     date_label: Schema.Attribute.String;
-    emoji: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::event.event'> &
       Schema.Attribute.Private;
@@ -605,11 +598,14 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
     order: Schema.Attribute.Integer;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.UID<'title'>;
+    statusPlan: Schema.Attribute.Enumeration<['planned', 'past']> &
+      Schema.Attribute.DefaultTo<'past'>;
     teaser: Schema.Attribute.Text;
     title: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    video_cover: Schema.Attribute.Media<'images'>;
   };
 }
 

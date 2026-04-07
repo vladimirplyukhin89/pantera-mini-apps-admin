@@ -27,10 +27,6 @@
     "order": {
       "type": "integer"
     },
-    "slug": {
-      "type": "uid",
-      "targetField": "title"
-    },
     "accent_color": {
       "type": "enumeration",
       "enum": [
