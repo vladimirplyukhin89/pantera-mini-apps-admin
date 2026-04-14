@@ -53,6 +53,9 @@
     "accent_index": {
       "type": "integer"
     },
+    "event_at": {
+      "type": "datetime"
+    },
     "order": {
       "type": "integer"
     }
