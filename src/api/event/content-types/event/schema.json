@@ -50,6 +50,9 @@
         "images"
       ]
     },
+    "embed_video_url": {
+      "type": "string"
+    },
     "accent_index": {
       "type": "integer"
     },
