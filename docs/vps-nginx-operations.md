@@ -118,6 +118,54 @@ systemctl reload nginx
 systemctl status nginx --no-pager
 ```
 
+### Рекомендуемые настройки для upload (502/413)
+
+Если в `error.log` есть `upstream prematurely closed connection while reading response header from upstream` на `POST /upload`, начните с усиления лимитов/таймаутов в `server` блоке сайта:
+
+```nginx
+server {
+    server_name admin.pantera-boxing.ru;
+
+    # Должен быть не меньше лимита Strapi upload/body parser.
+    client_max_body_size 50m;
+    client_body_timeout 120s;
+
+    location / {
+        proxy_pass http://127.0.0.1:1337;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Для долгой обработки изображений/медленного диска.
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+
+        # Уменьшает риск обрывов при multipart upload.
+        proxy_request_buffering off;
+    }
+}
+```
+
+Применение под `root`:
+
+```bash
+nginx -t && systemctl reload nginx
+```
+
+Минимальная проверка:
+
+```bash
+# В браузере повторить загрузку того же файла
+# и параллельно смотреть ошибки nginx
+tail -f /var/log/nginx/error.log
+```
+
+Если 502 остаётся после этих настроек, причина обычно уже в Strapi/Node (исключение в upload, падение процесса или OOM), а не в самом Nginx.
+
 ## HTTPS (Let’s Encrypt / certbot)
 
 Выпуск/обновление сертификата (под `root`):
@@ -182,3 +230,4 @@ curl -I https://admin.pantera-boxing.ru/admin
 - **`deploy is not in the sudoers`** — системные команды только под `root` (`su -`).
 - **403/404 вместо Strapi** — смотрите `sites-enabled`, не перехватывает ли запрос `default`; нужен `proxy_pass` на `127.0.0.1:1337` для `server_name admin.pantera-boxing.ru`.
 - **HTTPS не открывается** — нет сертификата или nginx не слушает 443: `certbot --nginx`, затем `ss -ltnp | grep ':443'`.
+- **В админке при загрузке фото `JSON.parse: unexpected character ...`** — обычно Nginx вернул HTML-ошибку (часто `413 Request Entity Too Large`) вместо JSON. Проверьте `client_max_body_size` в `server`/`http` блоке Nginx и сделайте лимит не ниже Strapi (`UPLOAD_MAX_FILE_SIZE_MB`, по умолчанию 10 МБ), затем `nginx -t && systemctl reload nginx`.
