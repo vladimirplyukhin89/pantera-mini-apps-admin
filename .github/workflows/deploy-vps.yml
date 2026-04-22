@@ -3,7 +3,7 @@
 # Секреты в репозитории GitHub → Settings → Secrets and variables → Actions:
 #   VPS_HOST       — например 45.153.191.22
 #   VPS_USER       — deploy
-#   VPS_SSH_KEY    — приватный ключ (полный PEM), пара к public key в ~/.ssh/authorized_keys у VPS_USER
+#   VPS_SSH_KEY    — только приватный ключ (файл без .pub), целиком BEGIN…END, без кавычек и лишних пробелов
 #
 # На сервере у пользователя deploy должен работать `git pull` (deploy key на репо или HTTPS + credential).
 
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
     steps:
       - name: SSH — pull, build, pm2
         uses: appleboy/ssh-action@v1.2.2
@@ -27,7 +27,6 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
           script: |
             set -euo pipefail
             . "$HOME/.nvm/nvm.sh"
