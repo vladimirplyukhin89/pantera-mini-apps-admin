@@ -1,0 +1,44 @@
+# Деплой на VPS после push в main (см. docs/vps-nginx-operations.md).
+#
+# Секреты в репозитории GitHub → Settings → Secrets and variables → Actions:
+#   VPS_HOST       — например 45.153.191.22
+#   VPS_USER       — deploy
+#   VPS_SSH_KEY    — приватный ключ (полный PEM), пара к public key в ~/.ssh/authorized_keys у VPS_USER
+#
+# На сервере у пользователя deploy должен работать `git pull` (deploy key на репо или HTTPS + credential).
+
+name: Deploy Strapi to VPS
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH — pull, build, pm2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            . "$HOME/.nvm/nvm.sh"
+            cd /var/www/pantera-mini-apps-admin
+            if [ -f .tmp/data.db ]; then
+              mkdir -p backups
+              cp .tmp/data.db "backups/data-$(date +%F-%H%M).db"
+            fi
+            git pull
+            npm ci
+            export NODE_OPTIONS=--max-old-space-size=3072
+            NODE_ENV=production npm run build
+            pm2 restart pantera-admin
+            pm2 save
