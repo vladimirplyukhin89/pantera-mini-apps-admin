@@ -7,4 +7,4 @@ npm install
 npm run develop   # http://localhost:1337/admin
 ```
 
-Схемы контента в `src/api/`. Документация репозитория и миграция на Beget: [../docs/README.md](../docs/README.md), [../docs/strapi-cloud-to-beget.md](../docs/strapi-cloud-to-beget.md).
+Схемы контента в `src/api/`. Архитектура и стек: [docs/architecture-and-stack.md](docs/architecture-and-stack.md). Связь с сайтом и вынос CMS из монорепозитория: [docs/frontend-monorepo-integration.md](docs/frontend-monorepo-integration.md). Эксплуатация на VPS (Nginx, PM2, обновления): [docs/vps-nginx-operations.md](docs/vps-nginx-operations.md).
