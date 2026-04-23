@@ -33,6 +33,18 @@ cd /var/www/pantera-mini-apps-admin
 
 ## Окружение Node и PM2
 
+В репозитории зафиксирована **Node 20** (файлы `.nvmrc` и `.node-version`, поле `engines` в `package.json`). На VPS и локально после `git pull` выравнивайте версию так:
+
+```bash
+cd /var/www/pantera-mini-apps-admin
+. "$HOME/.nvm/nvm.sh"
+nvm install
+nvm use
+nvm alias default 20
+```
+
+GitHub Actions при деплое выполняет `nvm install` / `nvm use` уже после `git pull`, так что сборка на сервере идёт на той же major-версии, что и в проекте.
+
 PM2 и Node ставятся у `deploy` через **nvm**. Перед командами `pm2` всегда подгружайте nvm:
 
 ```bash

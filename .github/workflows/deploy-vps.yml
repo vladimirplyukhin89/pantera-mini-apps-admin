@@ -36,8 +36,11 @@ jobs:
               cp .tmp/data.db "backups/data-$(date +%F-%H%M).db"
             fi
             git pull
+            nvm install
+            nvm use
             npm ci
             export NODE_OPTIONS=--max-old-space-size=3072
             NODE_ENV=production npm run build
-            pm2 restart pantera-admin
+            # restart падает с «not found», если процесса ещё не было — тогда первый запуск
+            pm2 restart pantera-admin --update-env || pm2 start ./node_modules/.bin/strapi --name pantera-admin --cwd /var/www/pantera-mini-apps-admin -- start
             pm2 save
