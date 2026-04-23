@@ -5,7 +5,8 @@
 #   VPS_USER       — deploy
 #   VPS_SSH_KEY    — только приватный ключ (файл без .pub), целиком BEGIN…END, без кавычек и лишних пробелов
 #
-# На сервере у пользователя deploy должен работать `git pull` (deploy key на репо или HTTPS + credential).
+# На сервере у пользователя deploy нужен доступ к `git fetch` (deploy key или HTTPS + credential).
+# Рабочая копия совпадает с origin/main (`checkout -B main origin/main`), локальные правки в отслеживаемых файлах сбрасываются.
 
 name: Deploy Strapi to VPS
 
@@ -35,7 +36,8 @@ jobs:
               mkdir -p backups
               cp .tmp/data.db "backups/data-$(date +%F-%H%M).db"
             fi
-            git pull
+            git fetch origin
+            git checkout -B main origin/main
             nvm install
             nvm use
             npm ci
