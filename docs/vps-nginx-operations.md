@@ -8,7 +8,7 @@
 - **URL** `https://admin.pantera-boxing.ru` — это адрес **уже запущенного** приложения за Nginx. Браузер не «открывает репозиторий», а ходит к процессу Strapi на VPS.
 - Путь **`/admin`** — маршрут админки Strapi (не папка в `public_html` на shared-хостинге).
 
-Обновления кода на проде: `git pull` на сервере (пользователь `deploy`) → сборка → перезапуск PM2.
+Обновления кода на проде: GitHub Actions по push в `main` (SSH под `deploy`: `git fetch` + `git checkout -B main origin/main`) → `npm ci` / build → PM2. Руками на сервере — та же схема синхронизации с `origin/main`, без коммитов из `/var/www/...`.
 
 ## Доступ и пользователи
 
@@ -33,7 +33,7 @@ cd /var/www/pantera-mini-apps-admin
 
 ## Окружение Node и PM2
 
-В репозитории зафиксирована **Node 20** (файлы `.nvmrc` и `.node-version`, поле `engines` в `package.json`). На VPS и локально после `git pull` выравнивайте версию так:
+В репозитории зафиксирована **Node 20** (файлы `.nvmrc` и `.node-version`, поле `engines` в `package.json`). После обновления кода из Git (`git pull` локально или синхронизация с `origin/main` на VPS) выравнивайте версию так:
 
 ```bash
 cd /var/www/pantera-mini-apps-admin
@@ -43,7 +43,7 @@ nvm use
 nvm alias default 20
 ```
 
-GitHub Actions при деплое выполняет `nvm install` / `nvm use` уже после `git pull`, так что сборка на сервере идёт на той же major-версии, что и в проекте.
+GitHub Actions при деплое выполняет `nvm install` / `nvm use` уже после обновления кода из `origin/main`, так что сборка на сервере идёт на той же major-версии, что и в проекте.
 
 PM2 и Node ставятся у `deploy` через **nvm**. Перед командами `pm2` всегда подгружайте nvm:
 
@@ -106,11 +106,12 @@ cd /var/www/pantera-mini-apps-admin
 mkdir -p backups
 cp .tmp/data.db "backups/data-$(date +%F-%H%M).db"
 
-git pull
+git fetch origin
+git checkout -B main origin/main
 npm ci
 export NODE_OPTIONS=--max-old-space-size=3072
 NODE_ENV=production npm run build
-pm2 restart pantera-admin
+pm2 restart pantera-admin --update-env || pm2 start ./node_modules/.bin/strapi --name pantera-admin --cwd /var/www/pantera-mini-apps-admin -- start
 pm2 save
 ```
 
@@ -126,6 +127,57 @@ pm2 save
 | **Публичный IP `45.153.191.22`** | DNS `admin` → этот A-записью; Nginx на VPS принимает `80/443` |
 
 Версия **nginx/1.24.x (Ubuntu)** — директивы ниже с ней совместимы. Редактирование vhost: только под `root` или `sudo`.
+
+### WebSocket и переменная `$connection_upgrade`
+
+Если в `location` используете `proxy_set_header Connection $connection_upgrade;`, в блоке **`http { ... }`** файла `/etc/nginx/nginx.conf` (или в отдельном файле из `/etc/nginx/conf.d/`, подключаемом **до** `sites-enabled`) должно быть:
+
+```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+```
+
+Иначе `nginx -t` выдаст `unknown "connection_upgrade" variable`. Не помещайте `map` внутрь `server { }`.
+
+### Актуальный прокси под `.env` (таймауты 360s, один `location /`)
+
+Для прода с `UPLOAD_REQUEST_TIMEOUT_MS=360000` таймауты Nginx логично держать **на уровне `server`** **360s**, один блок **`location /`** на весь Strapi (не дублировать `location ^~ /api`, `/upload` и т.д. с другими таймаутами). После certbot правьте существующий SSL-`server`, пути к сертификатам не меняйте.
+
+Пример фрагмента для **443** (строки `listen` / `ssl_*` оставьте как выдал Certbot):
+
+```nginx
+server {
+    server_name admin.pantera-boxing.ru;
+
+    client_max_body_size 50m;
+    client_body_timeout 360s;
+
+    location / {
+        proxy_pass http://127.0.0.1:1337;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 360s;
+        proxy_read_timeout 360s;
+
+        proxy_request_buffering off;
+        proxy_buffering off;
+    }
+
+    # listen 443 ssl; ssl_certificate ... — managed by Certbot
+}
+```
 
 ### Полный пример vhost (HTTP → дальше certbot)
 
@@ -162,7 +214,7 @@ server {
     server_name admin.pantera-boxing.ru;
 
     client_max_body_size 50m;
-    client_body_timeout 120s;
+    client_body_timeout 360s;
 
     location / {
         proxy_pass http://127.0.0.1:1337;
@@ -175,13 +227,15 @@ server {
         proxy_set_header X-Forwarded-Host $host;
 
         proxy_connect_timeout 60s;
-        proxy_send_timeout 120s;
-        proxy_read_timeout 120s;
+        proxy_send_timeout 360s;
+        proxy_read_timeout 360s;
 
         proxy_request_buffering off;
     }
 }
 ```
+
+После выпуска сертификата и настройки `map` в `http` добавьте в этот же `location` строки `Upgrade` / `Connection $connection_upgrade`, как в разделе «Актуальный прокси» выше.
 
 Убедитесь, что в `.env` на сервере задано `PUBLIC_URL=https://admin.pantera-boxing.ru` (после включения HTTPS).
 
@@ -213,7 +267,7 @@ server {
 
     # Должен быть не меньше лимита Strapi upload/body parser.
     client_max_body_size 50m;
-    client_body_timeout 120s;
+    client_body_timeout 360s;
 
     location / {
         proxy_pass http://127.0.0.1:1337;
@@ -224,10 +278,13 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # Для долгой обработки изображений/медленного диска.
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Для долгой обработки изображений/медленного диска (согласовать с UPLOAD_REQUEST_TIMEOUT_MS).
         proxy_connect_timeout 60s;
-        proxy_send_timeout 120s;
-        proxy_read_timeout 120s;
+        proxy_send_timeout 360s;
+        proxy_read_timeout 360s;
 
         # Уменьшает риск обрывов при multipart upload.
         proxy_request_buffering off;
@@ -311,6 +368,8 @@ curl -I https://admin.pantera-boxing.ru/admin
 
 ## Типичные проблемы
 
+- **`curl: Failed to connect ... port 80/443`** — Nginx остановлен: `systemctl status nginx`, затем `systemctl start nginx`; проверка `ss -ltnp | grep -E ':80|:443'`. Убедитесь, что UFW разрешает **80** и **443**.
+- **`unknown "connection_upgrade" variable`** — директива `map` для `$connection_upgrade` должна быть в **`http { }`**, не в `server`. См. раздел выше.
 - **`pm2: command not found`** — не подгружен nvm: выполните `. "$HOME/.nvm/nvm.sh"`.
 - **`deploy is not in the sudoers`** — системные команды только под `root` (`su -`).
 - **403/404 вместо Strapi** — смотрите `sites-enabled`, не перехватывает ли запрос `default`; нужен `proxy_pass` на `127.0.0.1:1337` для `server_name admin.pantera-boxing.ru`.
