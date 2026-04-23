@@ -75,6 +75,10 @@ pm2 restart pantera-admin --update-env
 
 - `NODE_ENV=production`
 - `PUBLIC_URL=https://admin.pantera-boxing.ru`
+- `UPLOAD_MAX_FILE_SIZE_MB=50` (или ваш рабочий лимит)
+- `UPLOAD_REQUEST_TIMEOUT_MS=300000`
+- `UPLOAD_HEADERS_TIMEOUT_MS=360000`
+- `UPLOAD_KEEP_ALIVE_TIMEOUT_MS=65000`
 - секреты из `.env.example` — уникальные значения, не из репозитория
 
 ## Обновление приложения после изменений в Git

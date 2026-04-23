@@ -18,14 +18,12 @@ const config: Core.Config.Middlewares = [
             'data:',
             'blob:',
             '://airtable.com',
-            '://cloudinary.com', // Разрешаем Cloudinary
           ],
           'media-src': [
             "'self'",
             'data:',
             'blob:',
             '://airtable.com',
-            '://cloudinary.com', // Разрешаем Cloudinary
           ],
           upgradeInsecureRequests: null,
         },
