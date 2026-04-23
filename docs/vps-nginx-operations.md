@@ -76,8 +76,8 @@ pm2 restart pantera-admin --update-env
 - `NODE_ENV=production`
 - `PUBLIC_URL=https://admin.pantera-boxing.ru`
 - `UPLOAD_MAX_FILE_SIZE_MB=50` (или ваш рабочий лимит)
-- `UPLOAD_REQUEST_TIMEOUT_MS=300000`
-- `UPLOAD_HEADERS_TIMEOUT_MS=360000`
+- `UPLOAD_REQUEST_TIMEOUT_MS=360000` (должно быть **не меньше**, чем `UPLOAD_HEADERS_TIMEOUT_MS` — иначе Node падает с `ERR_OUT_OF_RANGE`)
+- `UPLOAD_HEADERS_TIMEOUT_MS=300000`
 - `UPLOAD_KEEP_ALIVE_TIMEOUT_MS=65000`
 - секреты из `.env.example` — уникальные значения, не из репозитория
 
@@ -104,9 +104,78 @@ pm2 save
 
 ## Nginx
 
-Конфиг сайта (имя может совпадать):
+### Кто за что отвечает (разные «юзеры»)
 
-- ` /etc/nginx/sites-available/pantera-admin.conf`
+| Сущность | Роль |
+|----------|------|
+| **`root`** | Правит файлы в `/etc/nginx/`, `nginx -t`, `systemctl reload nginx`, `certbot` |
+| **`www-data`** | Только *процесс* nginx: читает конфиги и логи; **не** деплоит приложение |
+| **`deploy`** | Код, `pm2`, Node; слушает **только** `127.0.0.1:1337` (снаружи порт 1337 не обязателен) |
+| **Публичный IP `45.153.191.22`** | DNS `admin` → этот A-записью; Nginx на VPS принимает `80/443` |
+
+Версия **nginx/1.24.x (Ubuntu)** — директивы ниже с ней совместимы. Редактирование vhost: только под `root` или `sudo`.
+
+### Полный пример vhost (HTTP → дальше certbot)
+
+1. **Первая выкладка** (только порт 80, чтобы был ответ 200 и certbot мог выписать сертификат). Файл, например:
+
+   `/etc/nginx/sites-available/pantera-admin`
+
+2. Симлинк и проверка (под `root`):
+
+   ```bash
+   ln -sf /etc/nginx/sites-available/pantera-admin /etc/nginx/sites-enabled/pantera-admin
+   # отключить дефолт, если мешает:
+   # rm -f /etc/nginx/sites-enabled/default
+   nginx -t && systemctl reload nginx
+   ```
+
+3. Сертификат:
+
+   ```bash
+   certbot --nginx -d admin.pantera-boxing.ru
+   ```
+
+   Certbot **сам** добавит блок `listen 443 ssl` и редирект с `:80` на HTTPS — после этого не дублируйте `server` вручную, правьте существующий.
+
+Пример **начального** файла (только `listen 80`), интрассылка в Strapi на `127.0.0.1:1337`:
+
+```nginx
+# /etc/nginx/sites-available/pantera-admin
+# Strapi: PM2 у пользователя deploy, порт 1337
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name admin.pantera-boxing.ru;
+
+    client_max_body_size 50m;
+    client_body_timeout 120s;
+
+    location / {
+        proxy_pass http://127.0.0.1:1337;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+
+        proxy_request_buffering off;
+    }
+}
+```
+
+Убедитесь, что в `.env` на сервере задано `PUBLIC_URL=https://admin.pantera-boxing.ru` (после включения HTTPS).
+
+Конфиг сайта (имя файла может отличаться):
+
+- `/etc/nginx/sites-available/pantera-admin` (или `pantera-admin.conf`)
 - симлинк в `sites-enabled/`
 
 Проверка и перезагрузка (под `root`):
