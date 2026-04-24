@@ -1,5 +1,6 @@
-# Pantera — Strapi CMS
+# Pantera admin panel — Strapi CMS
 [![Deploy Strapi to VPS](https://github.com/vladimirplyukhin89/pantera-mini-apps-admin/actions/workflows/deploy-vps.yml/badge.svg)](https://github.com/vladimirplyukhin89/pantera-mini-apps-admin/actions/workflows/deploy-vps.yml)
+
 Headless CMS для сайта Pantera. Локально по умолчанию SQLite; в Strapi Cloud — PostgreSQL.
 
 ```bash
