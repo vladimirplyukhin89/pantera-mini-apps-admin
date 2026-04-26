@@ -28,7 +28,9 @@
       "type": "text"
     },
     "stats": {
-      "type": "json"
+      "type": "component",
+      "repeatable": false,
+      "component": "athlete.stat"
     },
     "badge": {
       "type": "string"

@@ -457,7 +457,7 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
     photo: Schema.Attribute.Media<'images'>;
     publishedAt: Schema.Attribute.DateTime;
     quote: Schema.Attribute.Text;
-    stats: Schema.Attribute.JSON;
+    stats: Schema.Attribute.Component<'athlete.stat', false>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

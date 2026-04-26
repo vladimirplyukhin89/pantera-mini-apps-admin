@@ -46,6 +46,8 @@ const config: Core.Config.Middlewares = [
   },
   'strapi::session',
   'strapi::favicon',
+  /** Long-lived cache for `/uploads/*` (hash-based filenames; overrides koa-static default 60s). */
+  'global::uploads-cache',
   'strapi::public',
 ];
 

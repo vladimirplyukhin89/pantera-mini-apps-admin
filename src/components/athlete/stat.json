@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_athlete_stats",
+  "info": {
+    "displayName": "Athlete stat",
+    "description": "Single statistic: label and value strings."
+  },
+  "options": {},
+  "attributes": {
+    "label": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string"
+    }
+  }
+}
